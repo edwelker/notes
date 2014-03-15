@@ -1,0 +1,133 @@
+Ansible
+
+What it can do:
+* Application deployment
+* Configuration managemtn
+* Machine provisioning
+* Complex orchestration - rolling upgrades
+* LB/Switch/Firewall configuration
+
+Differences
+* No agents, no custom security
+* Easy configuration (playbooks)
+* Config is YAML data, not code
+
+---
+- name: install and start apache
+  hosts: all
+  user: root
+
+  tasks:
+  
+  - name: install httpd
+    yum: name=httpd state=present
+
+  - name: start httpd
+    service: name=httpd state=running
+
+
+Ansible playbooks
+* Require --- at the top to indicate yaml
+* name defines the "name of the play"
+* hosts defines the "targets of the play"
+* user defines the system user to do the work under
+
+Ansible pushes the modules out to the server over ssh, it runs, and then it's
+removed.  SSH and Python are required.
+
+Ansible can be used either as one-off commands, or via a playbook.
+
+$ ansible -m ping -i hosts all
+Will ping all hosts.
+
+Output from running a playbook:
+Play *** (name, basically)
+Gathering Facts *** (when contacting a remote, ansible will get information
+about that system, and you can use the information later)
+Task *** (changed response means something has changed)
+Play Recap *** (summary of the results)
+
+Host inventory: list of hosts, grouped. ini file format.
+Ranges are possible: webserver-[01-25] or something[a:f]
+
+Overrides of standard defaults possible:
+
+webserver.whatever.com:2222 (non-standard ssh port)
+myhost ansible_ssh_port=5555 ansible_ssh_host=192.168.0.1 (you can refer to
+myhost and it will use those parameters)
+
+[name:children] allows you to do group nesting
+
+*** Concepts
+
+Playbooks contain plays, plays contain tasks, and tasks call modules, and
+everything is ordered from top to bottom
+i
+Tasks call modules. Yum, ec2, template, service are examples (template uses
+jinja2), command, shell, copy, git, etc.
+
+Command module: runs single unix-style commands
+Shell module: can do multiple commands connected by booleans or pipes, or
+whatever
+
+Copy example:
+
+- name: copy a file
+  copy: src=files/whatever.txt dest=else/name.txt owner=root group=root
+        mode=0644
+
+Yum example(s):
+
+- name: install packages
+  yum: name={{ item }} state=present
+  with_items:
+    - httpd
+    - git
+
+Handlers always run at the end of a play
+
+Templates: {{ }} means variable substitution
+
+*** Playbook variables
+
+Variables can be set by: 
+* Playbooks
+* Info in the host inventory
+* the command line
+* Discovered "facts"
+
+Facts are gathered when a play runs, and you can figure out available facts by
+running the standalone:
+
+ansible -m setup [hostname]
+
+Variables can be used in playbooks or templates, all {{ }}
+
+** Roles for organization (just a directory layout)
+
+- webserver (top level directory)
+ - files
+ - handlers
+ - tasks
+ - templates
+
+Meanwhile in the playbook, it'd look like
+
+---
+- name: do something
+  hosts: my_hosts
+
+  roles: 
+    - webserver
+
+Site.yml will run through all of the plays in order.
+
+Empty task will gather facts about each of the hosts
+
+- hosts: whatever
+  tasks:
+
+Other notes:
+serial: 1 (will make sure to do things one at a time)
+pre_tasks: (task) will run before normal roles
+post_tasks: will run after normal roles

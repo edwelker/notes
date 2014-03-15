@@ -1,4 +1,4 @@
-Ansible
+Ansible (video from http://www.ansible.com/resources)
 
 What it can do:
 * Application deployment
